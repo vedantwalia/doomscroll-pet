@@ -6,18 +6,21 @@ struct DoomscrollPetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        // The companion is presented by AppDelegate as a borderless panel.
-        // Keeping a Settings scene gives the app a normal menu-bar lifecycle
-        // without creating an extra window at launch.
-        Settings {
-            EmptyView()
+        // A menu-bar scene gives the accessory app a real control surface
+        // without SwiftUI creating a blank document window at launch.
+        MenuBarExtra("Doomscroll Pet", systemImage: "cat.fill") {
+            Button("Settings…") { appDelegate.showSettings() }
+            Divider()
+            Button("Quit Doomscroll Pet") { NSApp.terminate(nil) }
         }
+        .menuBarExtraStyle(.menu)
     }
 }
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var petPanel: NSPanel?
+    private var settingsPanel: NSPanel?
     private let petModel = PetAnimationModel()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -42,6 +45,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         petModel.panelMover = { [weak panel] origin in
             panel?.setFrameOrigin(origin)
         }
+        petModel.openSettings = { [weak self] in self?.showSettings() }
+        petModel.setFloating = { [weak panel] isFloating in
+            panel?.level = isFloating ? .floating : .normal
+            panel?.isFloatingPanel = isFloating
+        }
+        petModel.setFloating?(petModel.alwaysOnTop)
 
         if let screen = NSScreen.main ?? NSScreen.screens.first {
             let visibleFrame = screen.visibleFrame
@@ -58,6 +67,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
+
+    func showSettings() {
+        if let settingsPanel {
+            settingsPanel.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 190),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "Doomscroll Pet Settings"
+        panel.isReleasedWhenClosed = false
+        panel.contentView = NSHostingView(rootView: PetSettingsView(model: petModel))
+        panel.center()
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        settingsPanel = panel
+    }
 }
 
 private struct FloatingPetView: View {
@@ -65,7 +96,7 @@ private struct FloatingPetView: View {
 
     var body: some View {
         Group {
-            if let url = Bundle.module.url(forResource: model.pose, withExtension: "png"),
+            if let url = Bundle.module.url(forResource: model.displayPose, withExtension: "png"),
                let image = NSImage(contentsOf: url) {
                 Image(nsImage: image)
                     .resizable()
@@ -94,6 +125,7 @@ private struct FloatingPetView: View {
         .onAppear { model.startIdleAnimation() }
         .contextMenu {
             Button("Play greeting") { model.playGreeting() }
+            Button("Settings…") { model.openSettings?() }
             Button("Reset to screen corner") { model.resetPosition() }
             Divider()
             Button("Quit Doomscroll Pet") { NSApp.terminate(nil) }
@@ -115,6 +147,33 @@ private struct PetDragHandle: NSViewRepresentable {
     func updateNSView(_ view: PetDragNSView, context: Context) {
         view.onTap = onTap
         view.onMove = onMove
+    }
+}
+
+private struct PetSettingsView: View {
+    @ObservedObject var model: PetAnimationModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Picker("Cat sprite", selection: $model.selectedSprite) {
+                Text("Classic").tag("idle")
+                Text("Sleepy").tag("sleep")
+                Text("Walking").tag("walk1")
+                Text("Celebrating").tag("celebrate")
+            }
+            .pickerStyle(.menu)
+            Toggle("Gentle idle animation", isOn: $model.idleAnimationEnabled)
+            Toggle("Keep cat above other windows", isOn: $model.alwaysOnTop)
+            Divider()
+            HStack {
+                Button("Reset position") { model.resetPosition() }
+                Spacer()
+                Button("Done") { NSApp.keyWindow?.close() }
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 320, height: 228)
     }
 }
 
@@ -157,12 +216,35 @@ private final class PetDragNSView: NSView {
 @MainActor
 private final class PetAnimationModel: ObservableObject {
     @Published var pose = "idle"
+    @Published var selectedSprite = UserDefaults.standard.string(forKey: "selectedSprite") ?? "idle" {
+        didSet { UserDefaults.standard.set(selectedSprite, forKey: "selectedSprite") }
+    }
     @Published var bobUp = false
+    @Published var idleAnimationEnabled = UserDefaults.standard.object(forKey: "idleAnimationEnabled") == nil
+        || UserDefaults.standard.bool(forKey: "idleAnimationEnabled") {
+        didSet {
+            UserDefaults.standard.set(idleAnimationEnabled, forKey: "idleAnimationEnabled")
+            bobUp = idleAnimationEnabled
+        }
+    }
+    @Published var alwaysOnTop = UserDefaults.standard.object(forKey: "alwaysOnTop") == nil
+        || UserDefaults.standard.bool(forKey: "alwaysOnTop") {
+        didSet {
+            UserDefaults.standard.set(alwaysOnTop, forKey: "alwaysOnTop")
+            setFloating?(alwaysOnTop)
+        }
+    }
     private var animationTask: Task<Void, Never>?
     var panelMover: ((NSPoint) -> Void)?
+    var openSettings: (() -> Void)?
+    var setFloating: ((Bool) -> Void)?
+
+    var displayPose: String {
+        pose == "idle" ? selectedSprite : pose
+    }
 
     func startIdleAnimation() {
-        bobUp = true
+        bobUp = idleAnimationEnabled
     }
 
     func movePanel(to origin: NSPoint) {
