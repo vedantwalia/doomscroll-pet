@@ -1,9 +1,9 @@
 # Build and setup
 
-## Native desktop pet (current phase)
+## Native desktop pet
 
-The native companion builds directly with Swift Package Manager; Xcode project
-generation is not needed yet. From the repository root, run:
+The standalone desktop companion builds with Swift Package Manager. From the
+repository root, run:
 
 ```sh
 swift build
@@ -12,49 +12,52 @@ swift run doomscroll_pet
 
 The app appears as a transparent, always-on-top pixel cat in the lower-right
 corner of the main screen. Click it to play the greeting animation. Right-click
-and choose **Quit Doomscroll Pet** to exit. The PNG poses are bundled from
+and choose **Quit Doomscroll Pet** to exit. Sprite PNGs are bundled from
 `Sources/doomscroll_pet/Resources` by the package manifest.
 
-The app supports macOS 14 or later and Swift 6.4 or later.
+The app supports macOS 14 or later.
 
-## Safari extension (later phase)
+## Safari extension app
 
-Safari Web Extensions must be embedded and signed by an Xcode macOS app target.
-The native desktop pet can already be built and run separately with SwiftPM.
+The Xcode project is in `macos-xcode/DoomscrollPet/`. Open
+`DoomscrollPet.xcodeproj`, choose the **DoomscrollPet (macOS)** scheme, select
+**My Mac**, then build or run.
 
-## Xcode integration
+The Mac app and Safari extension targets share the App Group
+`group.com.vedantwalia.DoomscrollPet`. Before running the signed app:
 
-1. In Xcode, create a macOS App project named `DoomscrollPet`.
-2. Add **File → New → Target → Safari Web Extension**.
-3. Replace the generated extension resources with the files in
-   `SafariWebExtension/`.
-4. Add `DoomscrollPet/DoomscrollPetApp.swift` to the macOS app target.
-5. Add `DoomscrollPet/SafariWebExtensionHandler.swift` to the extension's native
-   handler target.
-6. Enable the same App Group on both targets, for example
-   `group.com.yourname.DoomscrollPet`.
-7. Replace `group.com.example.DoomscrollPet` in both Swift files with that
-   App Group identifier.
-8. Replace `com.example.DoomscrollPet.Extension` in
-   `DoomscrollPetApp.swift` with the generated Safari extension bundle ID.
-9. In `SafariWebExtension/background.js`, replace the example native application
-   identifier with the containing app's actual bundle identifier if required by
-   the Xcode-generated native messaging configuration.
-10. Build and run the app. Enable Doomscroll Pet in Safari → Settings →
-    Extensions and grant access to the sites you want to monitor.
+1. Select the **DoomscrollPet (macOS)** project and open **Signing & Capabilities**.
+2. Choose your Apple development team for both the macOS app and
+   **DoomscrollPet Extension (macOS)** targets.
+3. Make sure the App Groups capability is available for your team and that
+   `group.com.vedantwalia.DoomscrollPet` is registered for the app identifier.
+   If your team uses another group identifier, update both targets' entitlements
+   and the matching identifier in `macOS (App)/AppDelegate.swift` and
+   `Shared (Extension)/SafariWebExtensionHandler.swift`.
+4. Run the **DoomscrollPet (macOS)** scheme. In Safari, enable Doomscroll Pet
+   under **Safari → Settings → Extensions**, then grant access to sites you want
+   the extension to monitor.
 
-The exact extension packaging and native messaging registration depend on the
-Xcode-generated target configuration. Use the generated Safari Web Extension
-template as the source of truth for the Xcode version in use.
+A local unsigned build can be checked without selecting a team:
+
+```sh
+xcodebuild \
+  -project 'macos-xcode/DoomscrollPet/DoomscrollPet.xcodeproj' \
+  -scheme 'DoomscrollPet (macOS)' \
+  -destination 'platform=macOS' \
+  CODE_SIGNING_ALLOWED=NO build
+```
+
+The macOS scheme was verified to build successfully. Installing and running the
+Safari flow still requires development signing with the shared App Group
+entitlement, and Safari site access must be enabled by the user.
 
 ## Verification checklist
 
-- [ ] Embed the Safari extension in an Xcode macOS app with valid signing and entitlements.
+- [x] Build the macOS app and Safari extension targets.
+- [ ] Sign both targets with a development team and the shared App Group.
 - [ ] Enable the extension in Safari and grant site access.
 - [ ] Verify a warning after the configured interval on a disposable test tab.
 - [ ] Verify **Keep browsing** leaves the tab open.
 - [ ] Verify **Close tab** closes only the tab that triggered the warning.
 - [ ] Verify behavior when the app or extension is unavailable.
-
-The Xcode build, signing, entitlements, and runtime checks have not been
-performed. Treat this as a source scaffold, not a finished installer.

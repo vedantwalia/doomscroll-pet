@@ -1,42 +1,25 @@
-//
-//  SafariWebExtensionHandler.swift
-//  Shared (Extension)
-//
-//  Created by Vedant Walia on 16/11/26.
-//
-
 import SafariServices
-import os.log
 
-class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
+final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
+    private let appGroup = "group.com.vedantwalia.DoomscrollPet"
 
     func beginRequest(with context: NSExtensionContext) {
-        let request = context.inputItems.first as? NSExtensionItem
-
-        let profile: UUID?
-        if #available(iOS 17.0, macOS 14.0, *) {
-            profile = request?.userInfo?[SFExtensionProfileKey] as? UUID
-        } else {
-            profile = request?.userInfo?["profile"] as? UUID
+        guard let item = context.inputItems.first as? NSExtensionItem,
+              let message = item.userInfo?[SFExtensionMessageKey] as? [String: Any] else {
+            context.completeRequest(returningItems: nil)
+            return
         }
 
-        let message: Any?
-        if #available(iOS 15.0, macOS 11.0, *) {
-            message = request?.userInfo?[SFExtensionMessageKey]
-        } else {
-            message = request?.userInfo?["message"]
+        if message["type"] as? String == "doomscroll.warning" {
+            let defaults = UserDefaults(suiteName: appGroup)
+            defaults?.set(message["domain"] as? String ?? "distracting site", forKey: "warning.domain")
+            defaults?.set(message["tabId"] as? Int ?? -1, forKey: "warning.tabId")
+            defaults?.set(message["thresholdMinutes"] as? Int ?? 5, forKey: "warning.thresholdMinutes")
+            defaults?.set(Date().timeIntervalSince1970, forKey: "warning.timestamp")
         }
-
-        os_log(.default, "Received message from browser.runtime.sendNativeMessage: %@ (profile: %@)", String(describing: message), profile?.uuidString ?? "none")
 
         let response = NSExtensionItem()
-        if #available(iOS 15.0, macOS 11.0, *) {
-            response.userInfo = [ SFExtensionMessageKey: [ "echo": message ] ]
-        } else {
-            response.userInfo = [ "message": [ "echo": message ] ]
-        }
-
-        context.completeRequest(returningItems: [ response ], completionHandler: nil)
+        response.userInfo = [SFExtensionMessageKey: ["ok": true]]
+        context.completeRequest(returningItems: [response])
     }
-
 }

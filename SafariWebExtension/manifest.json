@@ -2,7 +2,14 @@
   "manifest_version": 3,
   "name": "Doomscroll Pet \u2014 Safari",
   "version": "0.2.0",
-  "description": "A gentle five-minute nudge from your desktop cat when you spend too long on selected sites.",
+  "description": "A gentle nudge from your desktop cat after a long visit to selected sites.",
+  "icons": {
+    "48": "images/icon-48.png",
+    "96": "images/icon-96.png",
+    "128": "images/icon-128.png",
+    "256": "images/icon-256.png",
+    "512": "images/icon-512.png"
+  },
   "permissions": [
     "tabs",
     "activeTab",
@@ -14,10 +21,14 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "scripts": [
+      "background.js"
+    ],
+    "type": "module"
   },
   "action": {
     "default_title": "Doomscroll Pet",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": "images/toolbar-icon.svg"
   }
 }
