@@ -39,6 +39,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         panel.isMovableByWindowBackground = false
         panel.contentView = NSHostingView(rootView: FloatingPetView(model: petModel))
+        petModel.panelMover = { [weak panel] origin in
+            panel?.setFrameOrigin(origin)
+        }
 
         if let screen = NSScreen.main ?? NSScreen.screens.first {
             let visibleFrame = screen.visibleFrame
@@ -79,20 +82,97 @@ private struct FloatingPetView: View {
             }
         }
         .frame(width: 112, height: 112)
+        .offset(y: model.bobUp ? -2 : 1)
+        .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: model.bobUp)
         .contentShape(Rectangle())
-        .onTapGesture { model.playGreeting() }
+        .overlay {
+            PetDragHandle(
+                onTap: { model.playGreeting() },
+                onMove: { model.movePanel(to: $0) }
+            )
+        }
+        .onAppear { model.startIdleAnimation() }
         .contextMenu {
             Button("Play greeting") { model.playGreeting() }
+            Button("Reset to screen corner") { model.resetPosition() }
             Divider()
             Button("Quit Doomscroll Pet") { NSApp.terminate(nil) }
         }
     }
 }
 
+private struct PetDragHandle: NSViewRepresentable {
+    let onTap: () -> Void
+    let onMove: (NSPoint) -> Void
+
+    func makeNSView(context: Context) -> PetDragNSView {
+        let view = PetDragNSView()
+        view.onTap = onTap
+        view.onMove = onMove
+        return view
+    }
+
+    func updateNSView(_ view: PetDragNSView, context: Context) {
+        view.onTap = onTap
+        view.onMove = onMove
+    }
+}
+
+private final class PetDragNSView: NSView {
+    var onTap: (() -> Void)?
+    var onMove: ((NSPoint) -> Void)?
+    private var startScreenPoint = NSPoint.zero
+    private var startWindowOrigin = NSPoint.zero
+    private var didMove = false
+
+    override var isOpaque: Bool { false }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: didMove ? .closedHand : .openHand)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard let window else { return }
+        startScreenPoint = window.convertPoint(toScreen: event.locationInWindow)
+        startWindowOrigin = window.frame.origin
+        didMove = false
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard window != nil else { return }
+        let current = window!.convertPoint(toScreen: event.locationInWindow)
+        let dx = current.x - startScreenPoint.x
+        let dy = current.y - startScreenPoint.y
+        guard hypot(dx, dy) > 3 else { return }
+        didMove = true
+        onMove?(NSPoint(x: startWindowOrigin.x + dx, y: startWindowOrigin.y + dy))
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if !didMove { onTap?() }
+        didMove = false
+    }
+}
+
 @MainActor
 private final class PetAnimationModel: ObservableObject {
     @Published var pose = "idle"
+    @Published var bobUp = false
     private var animationTask: Task<Void, Never>?
+    var panelMover: ((NSPoint) -> Void)?
+
+    func startIdleAnimation() {
+        bobUp = true
+    }
+
+    func movePanel(to origin: NSPoint) {
+        panelMover?(origin)
+    }
+
+    func resetPosition() {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        panelMover?(NSPoint(x: screen.visibleFrame.maxX - 148, y: screen.visibleFrame.minY + 16))
+    }
 
     func playGreeting() {
         animationTask?.cancel()
