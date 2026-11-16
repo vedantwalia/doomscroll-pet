@@ -216,7 +216,10 @@ private final class PetAnimationModel: ObservableObject {
     @Published var pose = "idle"
     @Published var idleFrame = 1
     @Published var selectedSprite = UserDefaults.standard.string(forKey: "selectedSprite") ?? "idle" {
-        didSet { UserDefaults.standard.set(selectedSprite, forKey: "selectedSprite") }
+        didSet {
+            UserDefaults.standard.set(selectedSprite, forKey: "selectedSprite")
+            updateIdleAnimation()
+        }
     }
     @Published var idleAnimationEnabled = UserDefaults.standard.object(forKey: "idleAnimationEnabled") == nil
         || UserDefaults.standard.bool(forKey: "idleAnimationEnabled") {
@@ -243,6 +246,9 @@ private final class PetAnimationModel: ObservableObject {
         if selectedSprite == "idle", idleAnimationEnabled {
             return "idle-loop-\(idleFrame)"
         }
+        if selectedSprite == "walk1", idleAnimationEnabled {
+            return "walk\((idleFrame - 1) % 3 + 1)"
+        }
         return selectedSprite
     }
 
@@ -254,13 +260,14 @@ private final class PetAnimationModel: ObservableObject {
         idleTask?.cancel()
         idleTask = nil
         idleFrame = 1
-        guard idleAnimationEnabled else { return }
+        guard idleAnimationEnabled, selectedSprite == "idle" || selectedSprite == "walk1" else { return }
 
         idleTask = Task { @MainActor in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 320_000_000)
                 guard !Task.isCancelled else { break }
-                idleFrame = idleFrame % 4 + 1
+                let frameCount = selectedSprite == "walk1" ? 3 : 4
+                idleFrame = idleFrame % frameCount + 1
             }
             idleTask = nil
         }
