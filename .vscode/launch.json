@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:doomscroll-pet}",
+            "name": "Debug doomscroll_pet",
+            "target": "doomscroll_pet",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug doomscroll_pet"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:doomscroll-pet}",
+            "name": "Release doomscroll_pet",
+            "target": "doomscroll_pet",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release doomscroll_pet"
+        }
+    ]
+}
