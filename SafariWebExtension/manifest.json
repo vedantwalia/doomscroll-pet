@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Doomscroll Pet \u2014 Safari",
+  "version": "0.2.0",
+  "description": "A gentle five-minute nudge from your desktop cat when you spend too long on selected sites.",
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage",
+    "alarms",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Doomscroll Pet"
+  }
+}
