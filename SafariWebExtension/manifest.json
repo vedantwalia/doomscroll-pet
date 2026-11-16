@@ -17,6 +17,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Doomscroll Pet"
+    "default_title": "Doomscroll Pet",
+    "default_popup": "popup.html"
   }
 }

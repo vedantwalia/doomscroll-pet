@@ -69,7 +69,6 @@ browser.runtime.onInstalled.addListener(async () => {
   await browser.storage.local.set({...DEFAULTS, ...saved});
   inspectActiveTab();
 });
-
 // The containing app sends this message only after the user explicitly chooses
 // "Close tab". We validate the pending tab ID before removing it.
 browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -77,23 +76,6 @@ browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const requestedId = Number(message.tabId);
     if (Number.isInteger(requestedId) && requestedId === pendingWarningTabId) {
       browser.tabs.remove(requestedId).then(() => sendResponse({ok: true}))
-        .catch(error => sendResponse({ok: false, error: String(error)}));
-      pendingWarningTabId = null;
-      return true;
-    }
-  }
-  if (message?.name === "doomscroll.dismiss") {
-    pendingWarningTabId = null;
-    sendResponse({ok: true});
-  }
-});
-
-// Messages dispatched by the containing macOS app arrive in the extension runtime.
-browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.name === "doomscroll.confirm-close") {
-    const id = Number(message.tabId);
-    if (Number.isInteger(id) && id === pendingWarningTabId) {
-      browser.tabs.remove(id).then(() => sendResponse({ok: true}))
         .catch(error => sendResponse({ok: false, error: String(error)}));
       pendingWarningTabId = null;
       return true;
