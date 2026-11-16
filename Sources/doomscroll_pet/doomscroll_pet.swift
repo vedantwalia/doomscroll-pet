@@ -113,8 +113,6 @@ private struct FloatingPetView: View {
             }
         }
         .frame(width: 112, height: 112)
-        .offset(y: model.bobUp ? -2 : 1)
-        .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: model.bobUp)
         .contentShape(Rectangle())
         .overlay {
             PetDragHandle(
@@ -216,15 +214,15 @@ private final class PetDragNSView: NSView {
 @MainActor
 private final class PetAnimationModel: ObservableObject {
     @Published var pose = "idle"
+    @Published var idleFrame = 1
     @Published var selectedSprite = UserDefaults.standard.string(forKey: "selectedSprite") ?? "idle" {
         didSet { UserDefaults.standard.set(selectedSprite, forKey: "selectedSprite") }
     }
-    @Published var bobUp = false
     @Published var idleAnimationEnabled = UserDefaults.standard.object(forKey: "idleAnimationEnabled") == nil
         || UserDefaults.standard.bool(forKey: "idleAnimationEnabled") {
         didSet {
             UserDefaults.standard.set(idleAnimationEnabled, forKey: "idleAnimationEnabled")
-            bobUp = idleAnimationEnabled
+            updateIdleAnimation()
         }
     }
     @Published var alwaysOnTop = UserDefaults.standard.object(forKey: "alwaysOnTop") == nil
@@ -235,16 +233,37 @@ private final class PetAnimationModel: ObservableObject {
         }
     }
     private var animationTask: Task<Void, Never>?
+    private var idleTask: Task<Void, Never>?
     var panelMover: ((NSPoint) -> Void)?
     var openSettings: (() -> Void)?
     var setFloating: ((Bool) -> Void)?
 
     var displayPose: String {
-        pose == "idle" ? selectedSprite : pose
+        guard pose == "idle" else { return pose }
+        if selectedSprite == "idle", idleAnimationEnabled {
+            return "idle-loop-\(idleFrame)"
+        }
+        return selectedSprite
     }
 
     func startIdleAnimation() {
-        bobUp = idleAnimationEnabled
+        updateIdleAnimation()
+    }
+
+    private func updateIdleAnimation() {
+        idleTask?.cancel()
+        idleTask = nil
+        idleFrame = 1
+        guard idleAnimationEnabled else { return }
+
+        idleTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 320_000_000)
+                guard !Task.isCancelled else { break }
+                idleFrame = idleFrame % 4 + 1
+            }
+            idleTask = nil
+        }
     }
 
     func movePanel(to origin: NSPoint) {
@@ -260,10 +279,10 @@ private final class PetAnimationModel: ObservableObject {
         animationTask?.cancel()
         pose = "jump"
         animationTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 350_000_000)
+            try? await Task.sleep(nanoseconds: 600_000_000)
             guard !Task.isCancelled else { return }
             pose = "celebrate"
-            try? await Task.sleep(nanoseconds: 650_000_000)
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
             guard !Task.isCancelled else { return }
             pose = "idle"
         }
