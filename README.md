@@ -1,21 +1,18 @@
 # Doomscroll Pet
 
-Doomscroll Pet is a macOS companion and Safari Web Extension that gives you a
-gentle nudge after spending time on selected websites. A floating cat appears
-with a warning and lets you choose whether to keep browsing or close the tab.
-It does not close tabs automatically.
+Doomscroll Pet is a native macOS desktop companion with a small pixel cat that
+floats in the lower-right corner of your screen. Click the cat for a short
+greeting animation, or right-click it to replay the greeting or quit.
 
-> **Status:** This repository contains source files, not a ready-to-install app.
-> An Xcode macOS app and Safari Web Extension project still need to be created,
-> configured, signed, and tested. See [the build and setup guide](docs/BUILDING.md).
+> **Status:** The native desktop pet is a Swift Package Manager executable.
+> Safari monitoring and packaging remain a later phase and still require Xcode.
 
 ## What it does
 
-- Tracks the active Safari tab on YouTube, Instagram, Reddit, and TikTok by default.
-- Sends a warning to the companion app after approximately five minutes.
-- Offers **Keep browsing** and **Close tab** choices; closing requires explicit
-  confirmation in the app.
-- Displays a small animated cat using the included PNG poses.
+- Displays the included pixel cat as a transparent, always-on-top desktop panel.
+- Opens at the lower-right of the main screen and remains stationary.
+- Uses the bundled jump and celebration poses for a click greeting.
+- Does not yet monitor Safari or close tabs.
 
 The timer is approximate because the extension checks periodically. Site
 matching and the threshold are represented in the extension source; settings
@@ -25,10 +22,10 @@ controls in the current app scaffold are not all wired to extension storage.
 
 ```text
 .
-├── DoomscrollPet/
-│   ├── Resources/                  # Cat pose images
-│   ├── DoomscrollPetApp.swift      # macOS app and floating pet UI
-│   └── SafariWebExtensionHandler.swift
+├── Sources/doomscroll_pet/
+│   ├── doomscroll_pet.swift        # SwiftUI app and AppKit floating panel
+│   └── Resources/                  # Swift Package Manager cat pose images
+├── DoomscrollPet/                  # Later Xcode/Safari integration scaffold
 ├── SafariWebExtension/
 │   ├── background.js               # Tab monitoring and warning flow
 │   ├── manifest.json
@@ -39,19 +36,23 @@ controls in the current app scaffold are not all wired to extension storage.
 
 ## Requirements
 
-- macOS and Xcode with the Safari Web Extension target template
-- A Safari browser for extension testing
-- Matching bundle identifiers and an App Group configured for both targets
+- macOS 14 or later
+- Swift 6.4 or later (Xcode Command Line Tools are sufficient for the native pet)
 
 ## Build and setup
 
-Follow [docs/BUILDING.md](docs/BUILDING.md) to create the Xcode targets, wire up
-the extension resources, configure identifiers, and test the warning flow.
+From the repository root, build and launch the native pet:
+
+```sh
+swift build
+swift run doomscroll_pet
+```
+
+Right-click the cat to quit. Safari extension setup is documented separately in
+[the build and setup guide](docs/BUILDING.md) and is intentionally deferred.
 
 ## Safety and privacy notes
 
-- The extension requests broad host access in its manifest so it can observe
-  the active tab URL. Its default watched-domain list is limited to four sites.
-- Tab closure is intended to happen only after the user selects **Close tab**.
-- Review the requested Safari permissions and the source before enabling the
-  extension. No production build or runtime behavior has been verified yet.
+- The current Swift Package Manager target only displays the cat; it does not
+  access Safari, read browsing activity, or close tabs.
+- The separate Safari scaffold has not been built, signed, or enabled.
