@@ -7,6 +7,10 @@ greeting animation, or right-click it to replay the greeting or quit.
 > **Status:** The native desktop pet is a Swift Package Manager executable.
 > Safari monitoring and packaging remain a later phase and still require Xcode.
 
+<p align="center">
+  <img src="docs/doomscroll-pet.gif" alt="Doomscroll Pet idling, jumping, and celebrating" width="192">
+</p>
+
 ## What it does
 
 - Displays the included pixel cat as a transparent, always-on-top desktop panel.
