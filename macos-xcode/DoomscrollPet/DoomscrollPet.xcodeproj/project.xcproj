@@ -2,13 +2,13 @@
   "default-configuration": "Release",
   "configurations": [
     "Debug",
-    "Release"
+    "Release",
   ],
   "localizations": {
     "development": "en",
     "supported": [
-      "Base"
-    ]
+      "Base",
+    ],
   },
   "files": [
     {
@@ -24,10 +24,9 @@
             "Resources/Icon.png",
             "Resources/Script.js",
             "Resources/Style.css",
-            "ViewController.swift"
-          ]
-        },
-        {
+            "ViewController.swift",
+          ],
+        }, {
           "target": "DoomscrollPet (macOS)",
           "inclusions": [
             "/Localized: Resources/Main.html",
@@ -35,7 +34,6 @@
             "Resources/Icon.png",
             "Resources/Script.js",
             "Resources/Style.css",
-            "ViewController.swift",
             "Resources/celebrate.png",
             "Resources/click.png",
             "Resources/idle-loop-1.png",
@@ -47,17 +45,17 @@
             "Resources/sleep.png",
             "Resources/walk1.png",
             "Resources/walk2.png",
-            "Resources/walk3.png"
-          ]
-        }
-      ]
-    },
-    {
+            "Resources/walk3.png",
+            "ViewController.swift",
+          ],
+        },
+      ],
+    }, {
       "kind": "folder",
       "path": "Shared (Extension)",
       "opaque-folders": [
         "Resources/_locales",
-        "Resources/images"
+        "Resources/images",
       ],
       "membership-exceptions": [
         {
@@ -71,10 +69,9 @@
             "Resources/popup.css",
             "Resources/popup.html",
             "Resources/popup.js",
-            "SafariWebExtensionHandler.swift"
-          ]
-        },
-        {
+            "SafariWebExtensionHandler.swift",
+          ],
+        }, {
           "target": "DoomscrollPet Extension (macOS)",
           "inclusions": [
             "Resources/_locales",
@@ -85,105 +82,64 @@
             "Resources/popup.css",
             "Resources/popup.html",
             "Resources/popup.js",
-            "SafariWebExtensionHandler.swift"
-          ]
-        }
-      ]
-    },
-    {
+            "SafariWebExtensionHandler.swift",
+          ],
+        },
+      ],
+    }, {
       "kind": "folder",
       "path": "iOS (App)",
       "target-membership": [
-        "DoomscrollPet (iOS)"
+        "DoomscrollPet (iOS)",
       ],
       "membership-exceptions": [
         {
           "target": "DoomscrollPet (iOS)",
           "exclusions": [
-            "Info.plist"
-          ]
-        }
-      ]
+            "Info.plist",
+          ],
+        },
+      ],
     },
-    {
-      "kind": "folder",
-      "path": "macOS (App)",
-      "target-membership": [
-        "DoomscrollPet (macOS)"
-      ]
-    },
+    { "kind": "folder", "path": "macOS (App)", "target-membership": [ "DoomscrollPet (macOS)" ] },
     {
       "kind": "folder",
       "path": "iOS (Extension)",
       "target-membership": [
-        "DoomscrollPet Extension (iOS)"
+        "DoomscrollPet Extension (iOS)",
       ],
       "membership-exceptions": [
         {
           "target": "DoomscrollPet Extension (iOS)",
           "exclusions": [
-            "Info.plist"
-          ]
-        }
-      ]
-    },
-    {
+            "Info.plist",
+          ],
+        },
+      ],
+    }, {
       "kind": "folder",
       "path": "macOS (Extension)",
       "target-membership": [
-        "DoomscrollPet Extension (macOS)"
+        "DoomscrollPet Extension (macOS)",
       ],
       "membership-exceptions": [
         {
           "target": "DoomscrollPet Extension (macOS)",
           "exclusions": [
-            "Info.plist"
-          ]
-        }
-      ]
-    },
-    {
+            "Info.plist",
+          ],
+        },
+      ],
+    }, {
       "kind": "group",
       "name": "Products",
       "children": [
-        {
-          "path": "<PRODUCTS>/DoomscrollPet.app",
-          "id": "E0FAC79130AB7D2E00CC3B81",
-          "type": "wrapper.application",
-          "index": false
-        },
-        {
-          "path": "<PRODUCTS>/DoomscrollPet.app",
-          "id": "E0FAC7A330AB7D2E00CC3B81",
-          "type": "wrapper.application",
-          "index": false
-        },
-        {
-          "path": "<PRODUCTS>/DoomscrollPet Extension.appex",
-          "id": "E0FAC7AE30AB7D2E00CC3B81",
-          "type": "wrapper.app-extension",
-          "index": false,
-          "target-membership": [
-            {
-              "build-phase": "DoomscrollPet (iOS)/copy/Embed Foundation Extensions",
-              "header-preservation": "remove-on-copy"
-            }
-          ]
-        },
-        {
-          "path": "<PRODUCTS>/DoomscrollPet Extension.appex",
-          "id": "E0FAC7B830AB7D2E00CC3B81",
-          "type": "wrapper.app-extension",
-          "index": false,
-          "target-membership": [
-            {
-              "build-phase": "DoomscrollPet (macOS)/copy/Embed Foundation Extensions",
-              "header-preservation": "remove-on-copy"
-            }
-          ]
-        }
-      ]
-    }
+        { "path": "<PRODUCTS>/DoomscrollPet.app", "id": "E0FAC79130AB7D2E00CC3B81", "type": "wrapper.application", "index": false },
+        { "path": "<PRODUCTS>/DoomscrollPet.app", "id": "E0FAC7A330AB7D2E00CC3B81", "type": "wrapper.application", "index": false },
+        { "path": "<PRODUCTS>/DoomscrollPet Extension.appex", "id": "E0FAC7AE30AB7D2E00CC3B81", "type": "wrapper.app-extension", "index": false, "target-membership": [ { "build-phase": "DoomscrollPet (iOS)/copy/Embed Foundation Extensions", "header-preservation": "remove-on-copy" } ] },
+        { "path": "<PRODUCTS>/DoomscrollPet Extension.appex", "id": "E0FAC7B830AB7D2E00CC3B81", "type": "wrapper.app-extension", "index": false, "target-membership": [ { "build-phase": "DoomscrollPet (macOS)/copy/Embed Foundation Extensions", "header-preservation": "remove-on-copy" } ] },
+      ],
+    },
   ],
   "targets": [
     {
@@ -192,7 +148,7 @@
       "product": "id:E0FAC79130AB7D2E00CC3B81",
       "product-type": "application",
       "dependencies": [
-        "DoomscrollPet Extension (iOS)"
+        "DoomscrollPet Extension (iOS)",
       ],
       "build-phases": [
         "compile-sources",
@@ -201,8 +157,8 @@
         {
           "kind": "copy",
           "name": "Embed Foundation Extensions",
-          "bundle-base-path": "plugins-directory"
-        }
+          "bundle-base-path": "plugins-directory",
+        },
       ],
       "build-settings": {
         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
@@ -220,14 +176,14 @@
         "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
         "LD_RUNPATH_SEARCH_PATHS": [
           "$(inherited)",
-          "@executable_path/Frameworks"
+          "@executable_path/Frameworks",
         ],
         "MARKETING_VERSION": "1.0",
         "OTHER_LDFLAGS": [
           "-framework",
           "SafariServices",
           "-framework",
-          "WebKit"
+          "WebKit",
         ],
         "PRODUCT_BUNDLE_IDENTIFIER": "com.vedantwalia.DoomscrollPet",
         "PRODUCT_NAME": "DoomscrollPet",
@@ -239,16 +195,15 @@
         "SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY": "YES",
         "SWIFT_VERSION": "5.0",
         "TARGETED_DEVICE_FAMILY": "1,2",
-        "VALIDATE_PRODUCT[config=Release]": "YES"
-      }
-    },
-    {
+        "VALIDATE_PRODUCT[config=Release]": "YES",
+      },
+    }, {
       "name": "DoomscrollPet (macOS)",
       "id": "E0FAC7A230AB7D2E00CC3B81",
       "product": "id:E0FAC7A330AB7D2E00CC3B81",
       "product-type": "application",
       "dependencies": [
-        "DoomscrollPet Extension (macOS)"
+        "DoomscrollPet Extension (macOS)",
       ],
       "build-phases": [
         "compile-sources",
@@ -257,14 +212,16 @@
         {
           "kind": "copy",
           "name": "Embed Foundation Extensions",
-          "bundle-base-path": "plugins-directory"
-        }
+          "bundle-base-path": "plugins-directory",
+        },
       ],
       "build-settings": {
         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
         "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
+        "CODE_SIGN_ENTITLEMENTS": "DoomscrollPet.entitlements",
         "CODE_SIGN_STYLE": "Automatic",
         "CURRENT_PROJECT_VERSION": "1",
+        "DEVELOPMENT_TEAM": "H55M39HW6S",
         "ENABLE_APP_SANDBOX": "YES",
         "ENABLE_HARDENED_RUNTIME": "YES",
         "ENABLE_OUTGOING_NETWORK_CONNECTIONS": "YES",
@@ -274,7 +231,7 @@
         "INFOPLIST_KEY_NSPrincipalClass": "NSApplication",
         "LD_RUNPATH_SEARCH_PATHS": [
           "$(inherited)",
-          "@executable_path/../Frameworks"
+          "@executable_path/../Frameworks",
         ],
         "MACOSX_DEPLOYMENT_TARGET": "14.0",
         "MARKETING_VERSION": "1.0",
@@ -282,7 +239,7 @@
           "-framework",
           "SafariServices",
           "-framework",
-          "WebKit"
+          "WebKit",
         ],
         "PRODUCT_BUNDLE_IDENTIFIER": "com.vedantwalia.DoomscrollPet",
         "PRODUCT_NAME": "DoomscrollPet",
@@ -294,10 +251,8 @@
         "SWIFT_EMIT_LOC_STRINGS": "YES",
         "SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY": "YES",
         "SWIFT_VERSION": "5.0",
-        "CODE_SIGN_ENTITLEMENTS": "DoomscrollPet.entitlements"
-      }
-    },
-    {
+      },
+    }, {
       "name": "DoomscrollPet Extension (iOS)",
       "id": "E0FAC7AD30AB7D2E00CC3B81",
       "product": "id:E0FAC7AE30AB7D2E00CC3B81",
@@ -305,7 +260,7 @@
       "build-phases": [
         "compile-sources",
         "frameworks",
-        "resources"
+        "resources",
       ],
       "build-settings": {
         "CODE_SIGN_STYLE": "Automatic",
@@ -318,12 +273,12 @@
         "LD_RUNPATH_SEARCH_PATHS": [
           "$(inherited)",
           "@executable_path/Frameworks",
-          "@executable_path/../../Frameworks"
+          "@executable_path/../../Frameworks",
         ],
         "MARKETING_VERSION": "1.0",
         "OTHER_LDFLAGS": [
           "-framework",
-          "SafariServices"
+          "SafariServices",
         ],
         "PRODUCT_BUNDLE_IDENTIFIER": "com.vedantwalia.DoomscrollPet.Extension",
         "PRODUCT_NAME": "DoomscrollPet Extension",
@@ -335,10 +290,9 @@
         "SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY": "YES",
         "SWIFT_VERSION": "5.0",
         "TARGETED_DEVICE_FAMILY": "1,2",
-        "VALIDATE_PRODUCT[config=Release]": "YES"
-      }
-    },
-    {
+        "VALIDATE_PRODUCT[config=Release]": "YES",
+      },
+    }, {
       "name": "DoomscrollPet Extension (macOS)",
       "id": "E0FAC7B730AB7D2E00CC3B81",
       "product": "id:E0FAC7B830AB7D2E00CC3B81",
@@ -346,11 +300,13 @@
       "build-phases": [
         "compile-sources",
         "frameworks",
-        "resources"
+        "resources",
       ],
       "build-settings": {
+        "CODE_SIGN_ENTITLEMENTS": "DoomscrollPet.entitlements",
         "CODE_SIGN_STYLE": "Automatic",
         "CURRENT_PROJECT_VERSION": "1",
+        "DEVELOPMENT_TEAM": "H55M39HW6S",
         "ENABLE_APP_SANDBOX": "YES",
         "ENABLE_HARDENED_RUNTIME": "YES",
         "ENABLE_USER_SELECTED_FILES": "readonly",
@@ -361,13 +317,13 @@
         "LD_RUNPATH_SEARCH_PATHS": [
           "$(inherited)",
           "@executable_path/../Frameworks",
-          "@executable_path/../../../../Frameworks"
+          "@executable_path/../../../../Frameworks",
         ],
         "MACOSX_DEPLOYMENT_TARGET": "14.0",
         "MARKETING_VERSION": "1.0",
         "OTHER_LDFLAGS": [
           "-framework",
-          "SafariServices"
+          "SafariServices",
         ],
         "PRODUCT_BUNDLE_IDENTIFIER": "com.vedantwalia.DoomscrollPet.Extension",
         "PRODUCT_NAME": "DoomscrollPet Extension",
@@ -378,9 +334,8 @@
         "SWIFT_EMIT_LOC_STRINGS": "YES",
         "SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY": "YES",
         "SWIFT_VERSION": "5.0",
-        "CODE_SIGN_ENTITLEMENTS": "DoomscrollPet.entitlements"
-      }
-    }
+      },
+    },
   ],
   "build-settings": {
     "ALWAYS_SEARCH_USER_PATHS": "NO",
@@ -426,7 +381,7 @@
     "GCC_OPTIMIZATION_LEVEL[config=Debug]": "0",
     "GCC_PREPROCESSOR_DEFINITIONS[config=Debug]": [
       "DEBUG=1",
-      "$(inherited)"
+      "$(inherited)",
     ],
     "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
     "GCC_WARN_ABOUT_RETURN_TYPE": "YES_ERROR",
@@ -441,8 +396,8 @@
     "ONLY_ACTIVE_ARCH[config=Debug]": "YES",
     "SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Debug]": "DEBUG $(inherited)",
     "SWIFT_COMPILATION_MODE[config=Release]": "wholemodule",
-    "SWIFT_OPTIMIZATION_LEVEL[config=Debug]": "-Onone"
+    "SWIFT_OPTIMIZATION_LEVEL[config=Debug]": "-Onone",
   },
   "last-upgrade": "27.2",
-  "last-swift-update": "27.2"
+  "last-swift-update": "27.2",
 }

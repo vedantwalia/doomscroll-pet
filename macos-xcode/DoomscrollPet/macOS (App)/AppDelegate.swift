@@ -20,9 +20,11 @@ struct DoomscrollPetApp: App {
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var petPanel: NSPanel?
     private var settingsPanel: NSPanel?
+    private var warningPanel: NSPanel?
+    private var warningTabID: Int?
     private let petModel = PetAnimationModel()
     private var warningPoll: Timer?
     private var lastWarningTimestamp: Double = 0
@@ -78,7 +80,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func startWarningPolling() {
         warningPoll?.invalidate()
         warningPoll = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.checkForSafariWarning()
+            guard let self else { return }
+            Task { @MainActor in self.checkForSafariWarning() }
         }
     }
 
@@ -98,16 +101,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func presentSafariWarning(domain: String, tabID: Int, minutes: Int) {
-        let alert = NSAlert()
-        alert.messageText = "Take a break from \(domain)?"
-        alert.informativeText = "You’ve spent about \(minutes) minutes on this site. You can keep browsing or close this tab."
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "Keep browsing")
-        alert.addButton(withTitle: "Close tab")
-        NSApp.activate(ignoringOtherApps: true)
+        warningTabID = tabID
+        let size = NSSize(width: 360, height: 176)
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "A gentle pause"
+        panel.isReleasedWhenClosed = false
+        panel.level = .floating
+        panel.hidesOnDeactivate = false
+        panel.delegate = self
+        panel.contentView = NSHostingView(rootView: SafariWarningView(
+            domain: domain,
+            minutes: minutes,
+            keepBrowsing: { [weak self] in self?.respondToWarning(closeTab: false) },
+            closeTab: { [weak self] in self?.respondToWarning(closeTab: true) }
+        ))
 
-        let result = alert.runModal()
-        let message = result == .alertSecondButtonReturn ? "doomscroll.confirm-close" : "doomscroll.dismiss"
+        if let petFrame = petPanel?.frame, let screen = petPanel?.screen ?? NSScreen.main {
+            let visible = screen.visibleFrame
+            let x = min(max(visible.minX + 12, petFrame.maxX - size.width), visible.maxX - size.width - 12)
+            let y = min(petFrame.maxY + 10, visible.maxY - size.height - 12)
+            panel.setFrameOrigin(NSPoint(x: x, y: y))
+        } else {
+            panel.center()
+        }
+
+        let previousWarningPanel = warningPanel
+        warningPanel = panel
+        previousWarningPanel?.close()
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    private func respondToWarning(closeTab: Bool) {
+        guard let tabID = warningTabID else { return }
+        warningTabID = nil
+        warningPanel?.close()
+        let message = closeTab ? "doomscroll.confirm-close" : "doomscroll.dismiss"
         SFSafariApplication.dispatchMessage(
             withName: message,
             toExtensionWithIdentifier: extensionBundleIdentifier,
@@ -117,6 +151,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSLog("Doomscroll Pet could not send the Safari response: %@", error.localizedDescription)
             }
         }
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let panel = notification.object as? NSWindow, panel === warningPanel,
+              let tabID = warningTabID else { return }
+        warningTabID = nil
+        SFSafariApplication.dispatchMessage(
+            withName: "doomscroll.dismiss",
+            toExtensionWithIdentifier: extensionBundleIdentifier,
+            userInfo: ["tabId": tabID]
+        ) { error in
+            if let error {
+                NSLog("Doomscroll Pet could not dismiss the Safari warning: %@", error.localizedDescription)
+            }
+        }
+        warningPanel = nil
     }
 
     func showSettings() {
@@ -139,6 +189,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         settingsPanel = panel
+    }
+}
+
+private struct SafariWarningView: View {
+    let domain: String
+    let minutes: Int
+    let keepBrowsing: () -> Void
+    let closeTab: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("You’ve been on \(domain) for about \(minutes) minutes.")
+                .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Want to take a short break?")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            HStack {
+                Button("Keep browsing", action: keepBrowsing)
+                    .keyboardShortcut(.defaultAction)
+                Spacer()
+                Button("Close tab", role: .destructive, action: closeTab)
+            }
+        }
+        .padding(18)
+        .frame(width: 360, height: 128, alignment: .center)
     }
 }
 

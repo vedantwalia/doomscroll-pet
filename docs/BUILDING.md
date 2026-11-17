@@ -58,6 +58,7 @@ entitlement, and Safari site access must be enabled by the user.
 - [ ] Sign both targets with a development team and the shared App Group.
 - [ ] Enable the extension in Safari and grant site access.
 - [ ] Verify a warning after the configured interval on a disposable test tab.
-- [ ] Verify **Keep browsing** leaves the tab open.
+- [ ] Verify the non-blocking pet prompt appears beside the cat.
+- [ ] Verify **Keep browsing** and closing the prompt leave the tab open.
 - [ ] Verify **Close tab** closes only the tab that triggered the warning.
 - [ ] Verify behavior when the app or extension is unavailable.
