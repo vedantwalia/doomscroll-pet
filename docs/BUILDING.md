@@ -1,6 +1,6 @@
 # Build and setup
 
-## Native desktop pet
+## Standalone desktop pet
 
 The standalone desktop companion builds with Swift Package Manager. From the
 repository root, run:
@@ -10,10 +10,9 @@ swift build
 swift run doomscroll_pet
 ```
 
-The app appears as a transparent, always-on-top pixel cat in the lower-right
-corner of the main screen. Click it to play the greeting animation. Right-click
-and choose **Quit Doomscroll Pet** to exit. Sprite PNGs are bundled from
-`Sources/doomscroll_pet/Resources` by the package manifest.
+This Swift Package Manager version always shows the cat in the lower-right
+corner. The Safari companion described below uses the Xcode app and keeps the
+cat hidden until a watched-site timer is close to its limit.
 
 The app supports macOS 14 or later.
 
@@ -35,8 +34,15 @@ The Mac app and Safari extension targets share the App Group
    and the matching identifier in `macOS (App)/AppDelegate.swift` and
    `Shared (Extension)/SafariWebExtensionHandler.swift`.
 4. Run the **DoomscrollPet (macOS)** scheme. In Safari, enable Doomscroll Pet
-   under **Safari → Settings → Extensions**, then grant access to sites you want
-   the extension to monitor.
+   under **Safari → Settings → Extensions**.
+5. Open the extension from Safari’s toolbar. It starts with Instagram and
+   Reddit. Choose a visit limit, and use **Add** to add another website. Safari
+   asks before giving the extension access to each added site.
+
+The cat enters about 30 seconds before the visit limit, walks toward the top of
+Safari, and shows the break prompt at the limit. **Close tab** closes only the
+tab that started the timer after the cat’s playful pounce; **Keep browsing** or
+closing the prompt leaves the tab open and sends the cat away.
 
 A local unsigned build can be checked without selecting a team:
 
@@ -57,8 +63,9 @@ entitlement, and Safari site access must be enabled by the user.
 - [x] Build the macOS app and Safari extension targets.
 - [ ] Sign both targets with a development team and the shared App Group.
 - [ ] Enable the extension in Safari and grant site access.
-- [ ] Verify a warning after the configured interval on a disposable test tab.
-- [ ] Verify the non-blocking pet prompt appears beside the cat.
+- [ ] Verify the cat stays hidden, then enters shortly before the configured limit.
+- [ ] Verify it walks to the Safari toolbar and the prompt appears at the limit.
 - [ ] Verify **Keep browsing** and closing the prompt leave the tab open.
-- [ ] Verify **Close tab** closes only the tab that triggered the warning.
+- [ ] Verify **Close tab** closes only the timed tab, then the cat exits.
+- [ ] Verify Instagram, Reddit, and one user-added website.
 - [ ] Verify behavior when the app or extension is unavailable.

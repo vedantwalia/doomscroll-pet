@@ -10,12 +10,24 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             return
         }
 
-        if message["type"] as? String == "doomscroll.warning" {
-            let defaults = UserDefaults(suiteName: appGroup)
-            defaults?.set(message["domain"] as? String ?? "distracting site", forKey: "warning.domain")
-            defaults?.set(message["tabId"] as? Int ?? -1, forKey: "warning.tabId")
-            defaults?.set(message["thresholdMinutes"] as? Int ?? 5, forKey: "warning.thresholdMinutes")
-            defaults?.set(Date().timeIntervalSince1970, forKey: "warning.timestamp")
+        if let defaults = UserDefaults(suiteName: appGroup) {
+            switch message["type"] as? String {
+            case "doomscroll.approach":
+                defaults.set(message["domain"] as? String ?? "distracting site", forKey: "approach.domain")
+                defaults.set(message["tabId"] as? Int ?? -1, forKey: "approach.tabId")
+                defaults.set(Date().timeIntervalSince1970, forKey: "approach.timestamp")
+            case "doomscroll.warning":
+                defaults.set(message["domain"] as? String ?? "distracting site", forKey: "warning.domain")
+                defaults.set(message["tabId"] as? Int ?? -1, forKey: "warning.tabId")
+                defaults.set(message["thresholdMinutes"] as? Int ?? 5, forKey: "warning.thresholdMinutes")
+                defaults.set(Date().timeIntervalSince1970, forKey: "warning.timestamp")
+            case "doomscroll.hide":
+                defaults.removeObject(forKey: "approach.domain")
+                defaults.set(message["tabId"] as? Int ?? -1, forKey: "approach.hideTabId")
+                defaults.set(Date().timeIntervalSince1970, forKey: "approach.hideTimestamp")
+            default:
+                break
+            }
         }
 
         let response = NSExtensionItem()

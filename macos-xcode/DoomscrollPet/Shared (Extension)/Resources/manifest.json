@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Doomscroll Pet \u2014 Safari",
-  "version": "0.2.0",
-  "description": "A gentle nudge from your desktop cat after a long visit to selected sites.",
+  "version": "0.3.0",
+  "description": "A desktop cat visits near your chosen time limit on selected websites.",
   "icons": {
     "48": "images/icon-48.png",
     "96": "images/icon-96.png",
@@ -17,8 +17,8 @@
     "alarms",
     "nativeMessaging"
   ],
-  "host_permissions": [
-    "<all_urls>"
+  "optional_host_permissions": [
+    "*://*/*"
   ],
   "background": {
     "scripts": [

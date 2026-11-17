@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import SafariServices
 import Combine
+import CoreGraphics
 
 @main
 struct DoomscrollPetApp: App {
@@ -28,6 +29,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let petModel = PetAnimationModel()
     private var warningPoll: Timer?
     private var lastWarningTimestamp: Double = 0
+    private var lastApproachTimestamp: Double = 0
+    private var lastHideTimestamp: Double = 0
     private let appGroupIdentifier = "group.com.vedantwalia.DoomscrollPet"
     private let extensionBundleIdentifier = "com.vedantwalia.DoomscrollPet.Extension"
 
@@ -58,18 +61,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             panel?.level = isFloating ? .floating : .normal
             panel?.isFloatingPanel = isFloating
         }
+        petModel.setVisible = { [weak panel] isVisible in
+            if isVisible { panel?.orderFrontRegardless() }
+            else { panel?.orderOut(nil) }
+        }
         petModel.setFloating?(petModel.alwaysOnTop)
         startWarningPolling()
 
         if let screen = NSScreen.main ?? NSScreen.screens.first {
             let visibleFrame = screen.visibleFrame
-            panel.setFrameOrigin(NSPoint(
-                x: visibleFrame.maxX - size.width - 20,
-                y: visibleFrame.minY + 16
-            ))
+            panel.setFrameOrigin(NSPoint(x: visibleFrame.minX - size.width, y: visibleFrame.minY + 16))
         }
 
-        panel.orderFrontRegardless()
+        panel.orderOut(nil)
         petPanel = panel
     }
 
@@ -81,23 +85,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         warningPoll?.invalidate()
         warningPoll = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self else { return }
-            Task { @MainActor in self.checkForSafariWarning() }
+            Task { @MainActor in await self.checkForSafariWarning() }
         }
     }
 
-    private func checkForSafariWarning() {
-        guard let defaults = UserDefaults(suiteName: appGroupIdentifier),
-              let domain = defaults.string(forKey: "warning.domain") else { return }
+    private func checkForSafariWarning() async {
+        guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else { return }
+        let now = Date().timeIntervalSince1970
+
+        let hideTimestamp = defaults.double(forKey: "approach.hideTimestamp")
+        let approachTimestamp = defaults.double(forKey: "approach.timestamp")
+        if approachTimestamp > lastApproachTimestamp,
+           approachTimestamp > hideTimestamp,
+           now - approachTimestamp < 60,
+           let domain = defaults.string(forKey: "approach.domain") {
+            lastApproachTimestamp = approachTimestamp
+            await petModel.enterScreen(near: safariTabBarOrigin())
+            NSLog("Doomscroll Pet is approaching for %@", domain)
+        }
+
+        if hideTimestamp > lastHideTimestamp {
+            lastHideTimestamp = hideTimestamp
+            let hiddenTabID = defaults.integer(forKey: "approach.hideTabId")
+            if defaults.integer(forKey: "warning.tabId") == hiddenTabID {
+                defaults.removeObject(forKey: "warning.domain")
+                defaults.removeObject(forKey: "warning.timestamp")
+            }
+            if warningTabID == hiddenTabID {
+                warningTabID = nil
+                warningPanel?.close()
+                warningPanel = nil
+                dispatchSafariResponse("doomscroll.dismiss", tabID: hiddenTabID)
+            }
+            petModel.walkOffscreen()
+        }
+
+        guard let domain = defaults.string(forKey: "warning.domain") else { return }
         let timestamp = defaults.double(forKey: "warning.timestamp")
-        guard timestamp > lastWarningTimestamp,
-              Date().timeIntervalSince1970 - timestamp < 30 else { return }
+        guard timestamp > lastWarningTimestamp, now - timestamp < 30 else { return }
 
         lastWarningTimestamp = timestamp
         let tabID = defaults.integer(forKey: "warning.tabId")
         let minutes = defaults.integer(forKey: "warning.thresholdMinutes")
         defaults.removeObject(forKey: "warning.domain")
         defaults.removeObject(forKey: "warning.timestamp")
+        if !petModel.isOnScreen {
+            await petModel.enterScreen(near: safariTabBarOrigin())
+        } else {
+            await petModel.waitForEntrance()
+        }
         presentSafariWarning(domain: domain, tabID: tabID, minutes: max(minutes, 1))
+    }
+
+    private func safariTabBarOrigin() -> NSPoint {
+        let screen = NSScreen.main ?? NSScreen.screens.first
+        let visible = screen?.visibleFrame ?? .zero
+        let fallback = NSPoint(x: visible.maxX - 180, y: visible.maxY - 190)
+        guard let screen,
+              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]],
+              let safariWindow = windows.first(where: {
+                  ($0[kCGWindowOwnerName as String] as? String) == "Safari"
+                      && ($0[kCGWindowLayer as String] as? Int ?? 1) == 0
+              }),
+              let bounds = safariWindow[kCGWindowBounds as String] as? NSDictionary,
+              let quartzFrame = CGRect(dictionaryRepresentation: bounds) else { return fallback }
+
+        let appKitTop = screen.frame.maxY - quartzFrame.minY
+        let x = min(max(visible.minX + 24, quartzFrame.minX + quartzFrame.width * 0.72), visible.maxX - 128)
+        let y = min(max(visible.minY + 24, appKitTop - 118), visible.maxY - 128)
+        return NSPoint(x: x, y: y)
     }
 
     private func presentSafariWarning(domain: String, tabID: Int, minutes: Int) {
@@ -142,6 +198,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         warningTabID = nil
         warningPanel?.close()
         let message = closeTab ? "doomscroll.confirm-close" : "doomscroll.dismiss"
+        if closeTab {
+            Task { @MainActor in
+                await petModel.playTabCloseGesture()
+                dispatchSafariResponse(message, tabID: tabID)
+                await petModel.walkOffscreenAndWait()
+            }
+        } else {
+            dispatchSafariResponse(message, tabID: tabID)
+            petModel.walkOffscreen()
+        }
+    }
+
+    private func dispatchSafariResponse(_ message: String, tabID: Int) {
         SFSafariApplication.dispatchMessage(
             withName: message,
             toExtensionWithIdentifier: extensionBundleIdentifier,
@@ -157,16 +226,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let panel = notification.object as? NSWindow, panel === warningPanel,
               let tabID = warningTabID else { return }
         warningTabID = nil
-        SFSafariApplication.dispatchMessage(
-            withName: "doomscroll.dismiss",
-            toExtensionWithIdentifier: extensionBundleIdentifier,
-            userInfo: ["tabId": tabID]
-        ) { error in
-            if let error {
-                NSLog("Doomscroll Pet could not dismiss the Safari warning: %@", error.localizedDescription)
-            }
-        }
+        dispatchSafariResponse("doomscroll.dismiss", tabID: tabID)
         warningPanel = nil
+        petModel.walkOffscreen()
     }
 
     func showSettings() {
@@ -342,6 +404,9 @@ private final class PetDragNSView: NSView {
 private final class PetAnimationModel: ObservableObject {
     @Published var pose = "idle"
     @Published var idleFrame = 1
+    @Published var travelFrame = 1
+    private(set) var isOnScreen = false
+    private var isLeavingAfterAction = false
     @Published var selectedSprite = UserDefaults.standard.string(forKey: "selectedSprite") ?? "idle" {
         didSet {
             UserDefaults.standard.set(selectedSprite, forKey: "selectedSprite")
@@ -364,11 +429,17 @@ private final class PetAnimationModel: ObservableObject {
     }
     private var animationTask: Task<Void, Never>?
     private var idleTask: Task<Void, Never>?
+    private var travelTask: Task<Void, Never>?
+    private var lastPanelOrigin = NSPoint.zero
     var panelMover: ((NSPoint) -> Void)?
     var openSettings: (() -> Void)?
     var setFloating: ((Bool) -> Void)?
+    var setVisible: ((Bool) -> Void)?
 
     var displayPose: String {
+        if pose == "oneko-walk-right" || pose == "oneko-walk-up" || pose == "oneko-exit" {
+            return "\(pose)-\(travelFrame)"
+        }
         guard pose == "idle" else { return pose }
         if selectedSprite == "idle", idleAnimationEnabled {
             return "idle-loop-\(idleFrame)"
@@ -401,7 +472,93 @@ private final class PetAnimationModel: ObservableObject {
     }
 
     func movePanel(to origin: NSPoint) {
+        lastPanelOrigin = origin
         panelMover?(origin)
+    }
+
+    func enterScreen(near target: NSPoint) async {
+        travelTask?.cancel()
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        isOnScreen = true
+        isLeavingAfterAction = false
+        setVisible?(true)
+        let visible = screen.visibleFrame
+        let start = NSPoint(x: visible.minX - 128, y: visible.minY + 16)
+        movePanel(to: start)
+        let corner = NSPoint(x: target.x, y: start.y)
+
+        travelTask = Task { @MainActor in
+            await animateLeg(from: start, to: corner, poseName: "oneko-walk-right")
+            guard !Task.isCancelled else { return }
+            await animateLeg(from: corner, to: target, poseName: "oneko-walk-up")
+            guard !Task.isCancelled else { return }
+            pose = "idle"
+            travelTask = nil
+        }
+        await travelTask?.value
+    }
+
+    func waitForEntrance() async {
+        await travelTask?.value
+    }
+
+    func walkOffscreen() {
+        guard isOnScreen, !isLeavingAfterAction else { return }
+        isLeavingAfterAction = true
+        travelTask?.cancel()
+        travelTask = Task { @MainActor in await animateOffscreenAndHide() }
+    }
+
+    func playTabCloseGesture() async {
+        isLeavingAfterAction = true
+        travelTask?.cancel()
+        for frame in 1...4 {
+            guard !Task.isCancelled else { return }
+            pose = "oneko-exit"
+            travelFrame = frame
+            try? await Task.sleep(nanoseconds: 180_000_000)
+        }
+    }
+
+    func walkOffscreenAndWait() async {
+        guard isOnScreen else { return }
+        isLeavingAfterAction = true
+        travelTask?.cancel()
+        let task = Task { @MainActor in await animateOffscreenAndHide() }
+        travelTask = task
+        await task.value
+    }
+
+    private func animateOffscreenAndHide() async {
+        guard isOnScreen else { return }
+        let target = NSPoint(
+            x: (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame.maxX ?? lastPanelOrigin.x + 900,
+            y: lastPanelOrigin.y
+        )
+        await animateLeg(from: lastPanelOrigin, to: target, poseName: "oneko-walk-right")
+        guard !Task.isCancelled else { return }
+        isOnScreen = false
+        pose = "idle"
+        setVisible?(false)
+        travelTask = nil
+        isLeavingAfterAction = false
+    }
+
+    private func animateLeg(from start: NSPoint, to end: NSPoint, poseName: String) async {
+        let distance = hypot(end.x - start.x, end.y - start.y)
+        let steps = max(1, Int(distance / 9))
+        pose = poseName
+        for step in 0...steps {
+            guard !Task.isCancelled else { return }
+            let progress = CGFloat(step) / CGFloat(steps)
+            let position = NSPoint(
+                x: start.x + (end.x - start.x) * progress,
+                y: start.y + (end.y - start.y) * progress
+            )
+            travelFrame = (step / 6) % 4 + 1
+            movePanel(to: position)
+            try? await Task.sleep(nanoseconds: 32_000_000)
+        }
     }
 
     func resetPosition() {
