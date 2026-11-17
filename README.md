@@ -8,7 +8,7 @@ greeting animation, or right-click it to replay the greeting or quit.
 > Safari monitoring and packaging remain a later phase and still require Xcode.
 
 <p align="center">
-  <img src="docs/doomscroll-pet.gif" alt="Doomscroll Pet idling, jumping, and celebrating" width="192">
+  <img src="docs/doomscroll-pet.gif" alt="Doomscroll Pet walking through its four-frame animation" width="192">
 </p>
 
 ## What it does
