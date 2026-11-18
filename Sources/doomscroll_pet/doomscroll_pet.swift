@@ -9,6 +9,7 @@ struct DoomscrollPetApp: App {
         // A menu-bar scene gives the accessory app a real control surface
         // without SwiftUI creating a blank document window at launch.
         MenuBarExtra("Doomscroll Pet", systemImage: "cat.fill") {
+            Toggle("Oneko mode", isOn: appDelegate.onekoMode)
             Button("Settings…") { appDelegate.showSettings() }
             Divider()
             Button("Quit Doomscroll Pet") { NSApp.terminate(nil) }
@@ -22,6 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var petPanel: NSPanel?
     private var settingsPanel: NSPanel?
     private let petModel = PetAnimationModel()
+    var onekoMode: Binding<Bool> {
+        Binding(get: { self.petModel.onekoMode }, set: { self.petModel.onekoMode = $0 })
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -62,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         panel.orderFrontRegardless()
         petPanel = panel
+        petModel.startOnekoModeIfEnabled()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -76,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 320, height: 190),
+            contentRect: NSRect(x: 0, y: 0, width: 340, height: 280),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -102,6 +107,7 @@ private struct FloatingPetView: View {
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
+                    .scaleEffect(x: model.facingLeft ? -1 : 1, y: 1)
                     .accessibilityLabel("Doomscroll Pet, a pixel cat")
             } else {
                 Image(systemName: "cat.fill")
@@ -117,12 +123,13 @@ private struct FloatingPetView: View {
         .overlay {
             PetDragHandle(
                 onTap: { model.playGreeting() },
-                onMove: { model.movePanel(to: $0) }
+                onMove: { model.dragPanel(to: $0) }
             )
         }
         .onAppear { model.startIdleAnimation() }
         .contextMenu {
             Button("Play greeting") { model.playGreeting() }
+            Toggle("Oneko mode", isOn: $model.onekoMode)
             Button("Settings…") { model.openSettings?() }
             Button("Reset to screen corner") { model.resetPosition() }
             Divider()
@@ -162,6 +169,10 @@ private struct PetSettingsView: View {
             .pickerStyle(.menu)
             Toggle("Gentle idle animation", isOn: $model.idleAnimationEnabled)
             Toggle("Keep cat above other windows", isOn: $model.alwaysOnTop)
+            Toggle("Oneko mode: roam the desktop", isOn: $model.onekoMode)
+            Text("The cat wanders around until Oneko mode is turned off.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             Divider()
             HStack {
                 Button("Reset position") { model.resetPosition() }
@@ -171,7 +182,7 @@ private struct PetSettingsView: View {
             }
         }
         .padding(20)
-        .frame(width: 320, height: 228)
+        .frame(width: 340, height: 280)
     }
 }
 
@@ -215,6 +226,8 @@ private final class PetDragNSView: NSView {
 private final class PetAnimationModel: ObservableObject {
     @Published var pose = "idle"
     @Published var idleFrame = 1
+    @Published var travelFrame = 1
+    @Published var facingLeft = false
     @Published var selectedSprite = UserDefaults.standard.string(forKey: "selectedSprite") ?? "idle" {
         didSet {
             UserDefaults.standard.set(selectedSprite, forKey: "selectedSprite")
@@ -235,13 +248,26 @@ private final class PetAnimationModel: ObservableObject {
             setFloating?(alwaysOnTop)
         }
     }
+    @Published var onekoMode = UserDefaults.standard.bool(forKey: "onekoMode") {
+        didSet {
+            UserDefaults.standard.set(onekoMode, forKey: "onekoMode")
+            if onekoMode { startOnekoMode() }
+            else { onekoTask?.cancel(); onekoTask = nil; pose = "idle"; facingLeft = false }
+        }
+    }
     private var animationTask: Task<Void, Never>?
     private var idleTask: Task<Void, Never>?
+    private var onekoTask: Task<Void, Never>?
+    private var travelTask: Task<Void, Never>?
+    private var lastPanelOrigin = NSPoint.zero
     var panelMover: ((NSPoint) -> Void)?
     var openSettings: (() -> Void)?
     var setFloating: ((Bool) -> Void)?
 
     var displayPose: String {
+        if ["oneko-walk-right", "oneko-walk-up", "oneko-walk-down"].contains(pose) {
+            return "\(pose)-\(travelFrame)"
+        }
         guard pose == "idle" else { return pose }
         if selectedSprite == "idle", idleAnimationEnabled {
             return "idle-loop-\(idleFrame)"
@@ -254,6 +280,10 @@ private final class PetAnimationModel: ObservableObject {
 
     func startIdleAnimation() {
         updateIdleAnimation()
+    }
+
+    func startOnekoModeIfEnabled() {
+        if onekoMode { startOnekoMode() }
     }
 
     private func updateIdleAnimation() {
@@ -274,12 +304,88 @@ private final class PetAnimationModel: ObservableObject {
     }
 
     func movePanel(to origin: NSPoint) {
+        lastPanelOrigin = origin
         panelMover?(origin)
+    }
+
+    func dragPanel(to origin: NSPoint) {
+        travelTask?.cancel()
+        movePanel(to: origin)
     }
 
     func resetPosition() {
         guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
-        panelMover?(NSPoint(x: screen.visibleFrame.maxX - 148, y: screen.visibleFrame.minY + 16))
+        movePanel(to: NSPoint(x: screen.visibleFrame.maxX - 148, y: screen.visibleFrame.minY + 16))
+    }
+
+    private func startOnekoMode() {
+        if onekoTask != nil { return }
+        travelTask?.cancel()
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        let visible = screen.visibleFrame
+        if lastPanelOrigin == .zero {
+            movePanel(to: NSPoint(
+                x: CGFloat.random(in: (visible.minX + 24)...max(visible.minX + 24, visible.maxX - 152)),
+                y: CGFloat.random(in: (visible.minY + 16)...max(visible.minY + 16, visible.maxY - 144))
+            ))
+        }
+        onekoTask = Task { @MainActor in
+            while !Task.isCancelled && onekoMode {
+                try? await Task.sleep(nanoseconds: UInt64(Double.random(in: 2.0...4.6) * 1_000_000_000))
+                guard !Task.isCancelled, onekoMode else { break }
+                if Int.random(in: 0..<7) == 0 {
+                    pose = Bool.random() ? "sleep" : "celebrate"
+                    try? await Task.sleep(nanoseconds: 1_100_000_000)
+                    guard !Task.isCancelled else { break }
+                    pose = "idle"
+                }
+                let screens = NSScreen.screens.isEmpty ? [screen] : NSScreen.screens
+                let destinationScreen = screens.randomElement() ?? screen
+                let frame = destinationScreen.visibleFrame
+                let target = NSPoint(
+                    x: CGFloat.random(in: (frame.minX + 24)...max(frame.minX + 24, frame.maxX - 152)),
+                    y: CGFloat.random(in: (frame.minY + 16)...max(frame.minY + 16, frame.maxY - 144))
+                )
+                guard hypot(target.x - lastPanelOrigin.x, target.y - lastPanelOrigin.y) > 68 else { continue }
+                let movement = Task { @MainActor in await walk(to: target, from: lastPanelOrigin) }
+                travelTask = movement
+                await movement.value
+                travelTask = nil
+                if !Task.isCancelled { pose = "idle"; facingLeft = false }
+            }
+            onekoTask = nil
+        }
+    }
+
+    private func walk(to target: NSPoint, from origin: NSPoint) async {
+        var current = origin
+        if abs(target.x - current.x) > 3 {
+            let next = NSPoint(x: target.x, y: current.y)
+            facingLeft = target.x < current.x
+            await animateLeg(from: current, to: next, poseName: "oneko-walk-right")
+            current = next
+        }
+        guard !Task.isCancelled else { return }
+        if abs(target.y - current.y) > 3 {
+            facingLeft = false
+            let pose = target.y > current.y ? "oneko-walk-up" : "oneko-walk-down"
+            await animateLeg(from: current, to: NSPoint(x: current.x, y: target.y), poseName: pose)
+        }
+    }
+
+    private func animateLeg(from start: NSPoint, to end: NSPoint, poseName: String) async {
+        let steps = max(1, Int(hypot(end.x - start.x, end.y - start.y) / 8))
+        pose = poseName
+        for step in 0...steps {
+            guard !Task.isCancelled else { return }
+            let progress = CGFloat(step) / CGFloat(steps)
+            movePanel(to: NSPoint(
+                x: start.x + (end.x - start.x) * progress,
+                y: start.y + (end.y - start.y) * progress
+            ))
+            travelFrame = (step / 6) % 4 + 1
+            try? await Task.sleep(nanoseconds: 30_000_000)
+        }
     }
 
     func playGreeting() {
