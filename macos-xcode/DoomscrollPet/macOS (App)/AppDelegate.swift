@@ -43,6 +43,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        // The pet and Safari bridge must keep running even while every panel is
+        // closed. macOS automatic termination otherwise treats this menu-bar
+        // companion as idle after the reminder panel is dismissed.
+        ProcessInfo.processInfo.disableAutomaticTermination("Doomscroll Pet background companion")
 
         let size = NSSize(width: 128, height: 128)
         let panel = NSPanel(
@@ -254,9 +258,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func dispatchSafariResponse(_ message: String, tabID: Int) {
         SFSafariApplication.dispatchMessage(
-            withName: message,
+            withName: "doomscroll.native",
             toExtensionWithIdentifier: extensionBundleIdentifier,
-            userInfo: ["tabId": tabID]
+            userInfo: ["action": message, "tabId": tabID]
         ) { error in
             if let error {
                 NSLog("Doomscroll Pet could not send the Safari response: %@", error.localizedDescription)

@@ -104,20 +104,23 @@ browser.runtime.onInstalled.addListener(async (details) => {
   await browser.storage.local.set({...DEFAULTS, ...saved, watchedDomains});
   inspectActiveTab();
 });
-// The containing app sends these responses after the user chooses an action.
-// Validate the pending tab ID before removing anything.
-browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.name === "doomscroll.confirm-close") {
-    const requestedId = Number(message.tabId);
-    if (Number.isInteger(requestedId) && requestedId === pendingWarningTabId) {
-      browser.tabs.remove(requestedId).then(() => sendResponse({ok: true}))
-        .catch(error => sendResponse({ok: false, error: String(error)}));
+// Messages sent by SFSafariApplication.dispatchMessage arrive on the native
+// messaging port. A runtime.onMessage listener does not receive this channel.
+const nativeAppPort = browser.runtime.connectNative("com.vedantwalia.DoomscrollPet");
+nativeAppPort.onMessage.addListener(message => {
+  // The host's dispatchMessage name is a channel name; its userInfo dictionary
+  // becomes the message payload. Accept `name` as well for older host builds.
+  const action = message?.action || message?.name;
+  const tabId = Number(message?.tabId ?? message?.userInfo?.tabId);
+
+  // Validate the pending tab ID before removing anything.
+  if (action === "doomscroll.confirm-close") {
+    if (Number.isInteger(tabId) && tabId === pendingWarningTabId) {
+      browser.tabs.remove(tabId).catch(error => console.warn("Doomscroll Pet could not close the tab:", error));
       pendingWarningTabId = null;
-      return true;
     }
   }
-  if (message?.name === "doomscroll.dismiss") {
+  if (action === "doomscroll.dismiss") {
     pendingWarningTabId = null;
-    sendResponse({ok: true});
   }
 });
