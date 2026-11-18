@@ -1,27 +1,35 @@
 # Doomscroll Pet
 
-Doomscroll Pet is a native macOS desktop companion and Safari extension. Its
-pixel cat waits offscreen, walks up to Safari near a visit limit, and leaves
-playfully after you choose to close the timed tab or keep browsing.
+Doomscroll Pet is a native macOS desktop companion and Safari extension. Oneko,
+the pixel cat, waits offscreen, walks up to Safari near a visit limit, and
+leaves playfully after you choose to close the timed tab or keep browsing.
 
 > **Status:** The macOS Safari app and extension are in
 > `macos-xcode/DoomscrollPet/`. The separate Swift Package Manager build is a
-> standalone cat preview.
+> standalone Oneko and Oniu sprite preview.
 
 <p align="center">
-  <img src="docs/doomscroll-pet.gif" alt="Doomscroll Pet walking through its four-frame animation" width="192">
+  <img src="docs/doomscroll-pet.gif" alt="Oneko the cat walking through its four-frame animation" width="192">
 </p>
 
 ## What it does
 
 - Starts with Instagram and Reddit and lets you add more websites in the Safari
   toolbar popup.
-- Brings the animated cat onscreen shortly before the selected visit limit.
+- Brings Oneko onscreen shortly before the selected visit limit.
 - Keeps tab closure under your control: **Close tab** acts on the tab being
   timed; **Keep browsing** leaves it open.
 
 The timer checks periodically, so the entrance and prompt can be slightly early
 or late.
+
+## Meet Oniu
+
+Oniu is the dog companion you can choose instead of Oneko.
+
+<p align="center">
+  <img src="docs/oniu.gif" alt="Oniu the dog walking through its four-frame animation" width="192">
+</p>
 
 ## Project layout
 
@@ -29,7 +37,7 @@ or late.
 .
 ├── Sources/doomscroll_pet/
 │   ├── doomscroll_pet.swift        # SwiftUI app and AppKit floating panel
-│   └── Resources/                  # Swift Package Manager cat pose images
+│   └── Resources/                  # Swift Package Manager companion sprites
 ├── macos-xcode/DoomscrollPet/      # Signed macOS host app and Safari extension
 ├── SafariWebExtension/
 │   ├── background.js               # Tab monitoring and warning flow
@@ -51,7 +59,7 @@ For the Safari companion, open the Xcode project and choose the
 team, then run the app. Use Safari’s toolbar popup to set a limit and edit the
 watched websites. See [the build guide](docs/BUILDING.md) for steps.
 
-The standalone cat preview can also be built from the repository root:
+The standalone sprite preview can also be built from the repository root:
 
 ```sh
 swift build

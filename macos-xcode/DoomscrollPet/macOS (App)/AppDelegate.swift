@@ -334,8 +334,8 @@ private struct FloatingPetView: View {
                     .interpolation(.none)
                     .scaledToFit()
                     .scaleEffect(x: model.facingLeft ? -1 : 1, y: 1)
-                    .scaleEffect(model.selectedSprite == "dog" ? 0.8 : 1)
-                    .accessibilityLabel(model.selectedSprite == "dog" ? "Doomscroll Pet, a pixel dog" : "Doomscroll Pet, a pixel cat")
+                    .scaleEffect(model.selectedSprite == "dog" ? 0.68 : 1.1)
+                    .accessibilityLabel(model.selectedSprite == "dog" ? "Oniu, a pixel dog" : "Doomscroll Pet, a pixel cat")
             } else {
                 Image(systemName: "cat.fill")
                     .resizable()
@@ -388,7 +388,7 @@ private struct PetSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Picker("Companion", selection: $model.selectedSprite) {
-                Text("Corgi").tag("dog")
+                Text("Oniu").tag("dog")
                 Text("Classic").tag("idle")
                 Text("Sleepy").tag("sleep")
                 Text("Walking").tag("walk1")
