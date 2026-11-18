@@ -160,7 +160,8 @@ private struct PetSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Picker("Cat sprite", selection: $model.selectedSprite) {
+            Picker("Companion", selection: $model.selectedSprite) {
+                Text("Corgi").tag("dog")
                 Text("Classic").tag("idle")
                 Text("Sleepy").tag("sleep")
                 Text("Walking").tag("walk1")
@@ -168,9 +169,9 @@ private struct PetSettingsView: View {
             }
             .pickerStyle(.menu)
             Toggle("Gentle idle animation", isOn: $model.idleAnimationEnabled)
-            Toggle("Keep cat above other windows", isOn: $model.alwaysOnTop)
+            Toggle("Keep companion above other windows", isOn: $model.alwaysOnTop)
             Toggle("Oneko mode: roam the desktop", isOn: $model.onekoMode)
-            Text("The cat wanders around until Oneko mode is turned off.")
+            Text("Your companion wanders until Oneko mode is turned off.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Divider()
@@ -265,6 +266,14 @@ private final class PetAnimationModel: ObservableObject {
     var setFloating: ((Bool) -> Void)?
 
     var displayPose: String {
+        if selectedSprite == "dog" {
+            switch pose {
+            case "oneko-walk-right": return "dog-walk-right-\(travelFrame)"
+            case "oneko-walk-up": return "dog-walk-up-\(travelFrame)"
+            case "oneko-walk-down": return "dog-walk-down-\(travelFrame)"
+            default: return idleAnimationEnabled ? "dog-idle-loop-\(idleFrame)" : "dog-idle-loop-1"
+            }
+        }
         if ["oneko-walk-right", "oneko-walk-up", "oneko-walk-down"].contains(pose) {
             return "\(pose)-\(travelFrame)"
         }
@@ -290,7 +299,7 @@ private final class PetAnimationModel: ObservableObject {
         idleTask?.cancel()
         idleTask = nil
         idleFrame = 1
-        guard idleAnimationEnabled, selectedSprite == "idle" || selectedSprite == "walk1" else { return }
+        guard idleAnimationEnabled, selectedSprite == "idle" || selectedSprite == "walk1" || selectedSprite == "dog" else { return }
 
         idleTask = Task { @MainActor in
             while !Task.isCancelled {
@@ -390,6 +399,10 @@ private final class PetAnimationModel: ObservableObject {
 
     func playGreeting() {
         animationTask?.cancel()
+        if selectedSprite == "dog" {
+            pose = "idle"
+            return
+        }
         pose = "jump"
         animationTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 600_000_000)
