@@ -15,3 +15,7 @@ standalone “Load unpacked” browser extension.
 
 See the [build and setup guide](../docs/BUILDING.md) for Xcode integration and
 native messaging configuration.
+
+Use **Test cat entrance (10 seconds)** in the popup to exercise the app-group
+native bridge and sprite animation without waiting for a real site timer. The cat
+enters about 10 seconds after the button is pressed and then walks offscreen.

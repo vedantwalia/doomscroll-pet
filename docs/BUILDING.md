@@ -39,6 +39,10 @@ The Mac app and Safari extension targets share the App Group
    Reddit. Choose a visit limit, and use **Add** to add another website. Safari
    asks before giving the extension access to each added site.
 
+To check the native sprite entrance without waiting for a website timer, click
+**Test cat entrance (10 seconds)** in the popup. Keep the Doomscroll Pet app
+running; the cat should enter after 10 seconds and leave a few seconds later.
+
 The cat enters about 30 seconds before the visit limit, walks toward the top of
 Safari, and shows the break prompt at the limit. **Close tab** closes only the
 tab that started the timer after the cat’s playful pounce; **Keep browsing** or

@@ -10,6 +10,7 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             return
         }
 
+        var appIsRunning: Bool?
         if let defaults = UserDefaults(suiteName: appGroup) {
             switch message["type"] as? String {
             case "doomscroll.approach":
@@ -25,13 +26,24 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                 defaults.removeObject(forKey: "approach.domain")
                 defaults.set(message["tabId"] as? Int ?? -1, forKey: "approach.hideTabId")
                 defaults.set(Date().timeIntervalSince1970, forKey: "approach.hideTimestamp")
+            case "doomscroll.sprite-test":
+                let now = Date().timeIntervalSince1970
+                appIsRunning = now - defaults.double(forKey: "app.lastHeartbeat") < 3
+                if appIsRunning == true {
+                    defaults.set(now, forKey: "spriteTest.timestamp")
+                    defaults.set(min(max(message["delaySeconds"] as? Int ?? 10, 1), 60), forKey: "spriteTest.delaySeconds")
+                }
             default:
                 break
             }
         }
 
         let response = NSExtensionItem()
-        response.userInfo = [SFExtensionMessageKey: ["ok": true]]
+        var responseMessage: [String: Any] = ["ok": true]
+        if let appIsRunning {
+            responseMessage["appRunning"] = appIsRunning
+        }
+        response.userInfo = [SFExtensionMessageKey: responseMessage]
         context.completeRequest(returningItems: [response])
     }
 }

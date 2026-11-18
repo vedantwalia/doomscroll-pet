@@ -23,6 +23,7 @@
     .hint { margin-top: 5px; font-size: 11px; color: GrayText; }
     button.primary, .site-entry button { padding: 8px 11px; border: 0; border-radius: 7px; background: #7956d8; color: white; font: inherit; font-weight: 600; cursor: pointer; }
     button.primary { width: 100%; margin-top: 15px; }
+    button.test { width: 100%; margin-top: 8px; padding: 8px 11px; border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: 7px; background: transparent; color: CanvasText; font: inherit; cursor: pointer; }
     button:disabled { opacity: .6; cursor: default; }
     #status { min-height: 16px; margin-top: 8px; font-size: 11px; color: GrayText; }
     #status.error { color: #c43c35; }
@@ -46,6 +47,7 @@
   <div class="hint">Start with Instagram and Reddit. Add a domain or website address.</div>
   <ul class="site-list" id="site-list" aria-label="Watched websites"></ul>
   <button class="primary" id="save" type="button">Save settings</button>
+  <button class="test" id="sprite-test" type="button">Test cat entrance (10 seconds)</button>
   <div id="status" role="status" aria-live="polite"></div>
   <script src="popup.js"></script>
 </body>

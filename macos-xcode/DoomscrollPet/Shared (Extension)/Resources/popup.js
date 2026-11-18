@@ -10,6 +10,7 @@ const siteInput = document.getElementById("site-input");
 const addSiteButton = document.getElementById("add-site");
 const siteList = document.getElementById("site-list");
 const saveButton = document.getElementById("save");
+const spriteTestButton = document.getElementById("sprite-test");
 const status = document.getElementById("status");
 let watchedDomains = [...DEFAULTS.watchedDomains];
 
@@ -120,6 +121,27 @@ saveButton.addEventListener("click", async () => {
     showStatus(`Couldn’t save settings: ${error.message}`, true);
   } finally {
     saveButton.disabled = false;
+  }
+});
+
+spriteTestButton.addEventListener("click", async () => {
+  spriteTestButton.disabled = true;
+  try {
+    const response = await browser.runtime.sendNativeMessage({
+      type: "doomscroll.sprite-test",
+      delaySeconds: 10
+    });
+    if (response?.appRunning === true) {
+      showStatus("Test started. The cat should enter in about 10 seconds.");
+    } else if (response?.appRunning === false) {
+      showStatus("Doomscroll Pet isn’t running. Press Run in Xcode, then click this again.", true);
+    } else {
+      showStatus("The test signal arrived, but the app heartbeat wasn’t confirmed. Run the app in Xcode and try again.", true);
+    }
+  } catch (error) {
+    showStatus(`Couldn’t reach the Doomscroll Pet app: ${error.message}`, true);
+  } finally {
+    spriteTestButton.disabled = false;
   }
 });
 

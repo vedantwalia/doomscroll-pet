@@ -31,6 +31,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var lastWarningTimestamp: Double = 0
     private var lastApproachTimestamp: Double = 0
     private var lastHideTimestamp: Double = 0
+    private var lastSpriteTestTimestamp: Double = 0
+    private var pendingSpriteTestTimestamp: Double = 0
+    private var spriteTestHideTask: Task<Void, Never>?
     private let appGroupIdentifier = "group.com.vedantwalia.DoomscrollPet"
     private let extensionBundleIdentifier = "com.vedantwalia.DoomscrollPet.Extension"
 
@@ -92,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func checkForSafariWarning() async {
         guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else { return }
         let now = Date().timeIntervalSince1970
+        defaults.set(now, forKey: "app.lastHeartbeat")
 
         let hideTimestamp = defaults.double(forKey: "approach.hideTimestamp")
         let approachTimestamp = defaults.double(forKey: "approach.timestamp")
@@ -106,18 +110,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         if hideTimestamp > lastHideTimestamp {
             lastHideTimestamp = hideTimestamp
-            let hiddenTabID = defaults.integer(forKey: "approach.hideTabId")
-            if defaults.integer(forKey: "warning.tabId") == hiddenTabID {
-                defaults.removeObject(forKey: "warning.domain")
-                defaults.removeObject(forKey: "warning.timestamp")
+            // App Group defaults persist across launches. Ignore a previous
+            // visit's hide event when a newer approach event is already active.
+            if hideTimestamp >= approachTimestamp {
+                let hiddenTabID = defaults.integer(forKey: "approach.hideTabId")
+                if defaults.integer(forKey: "warning.tabId") == hiddenTabID {
+                    defaults.removeObject(forKey: "warning.domain")
+                    defaults.removeObject(forKey: "warning.timestamp")
+                }
+                if warningTabID == hiddenTabID {
+                    warningTabID = nil
+                    warningPanel?.close()
+                    warningPanel = nil
+                    dispatchSafariResponse("doomscroll.dismiss", tabID: hiddenTabID)
+                }
+                petModel.walkOffscreen()
             }
-            if warningTabID == hiddenTabID {
-                warningTabID = nil
-                warningPanel?.close()
-                warningPanel = nil
-                dispatchSafariResponse("doomscroll.dismiss", tabID: hiddenTabID)
+        }
+
+        let spriteTestTimestamp = defaults.double(forKey: "spriteTest.timestamp")
+        if spriteTestTimestamp > lastSpriteTestTimestamp {
+            lastSpriteTestTimestamp = spriteTestTimestamp
+            if now - spriteTestTimestamp <= 60 {
+                pendingSpriteTestTimestamp = spriteTestTimestamp
             }
-            petModel.walkOffscreen()
+        }
+        if pendingSpriteTestTimestamp > 0 {
+            let delay = max(1, min(defaults.integer(forKey: "spriteTest.delaySeconds"), 60))
+            if now - pendingSpriteTestTimestamp >= Double(delay) {
+                pendingSpriteTestTimestamp = 0
+                defaults.removeObject(forKey: "spriteTest.timestamp")
+                NSLog("Doomscroll Pet sprite test: entering after %d seconds", delay)
+                if petModel.isOnScreen {
+                    await petModel.walkOffscreenAndWait()
+                }
+                await petModel.enterScreen(near: safariTabBarOrigin())
+                spriteTestHideTask?.cancel()
+                spriteTestHideTask = Task { @MainActor [weak self] in
+                    try? await Task.sleep(nanoseconds: 8_000_000_000)
+                    guard !Task.isCancelled, let self else { return }
+                    if self.warningTabID == nil {
+                        await self.petModel.walkOffscreenAndWait()
+                    }
+                    self.spriteTestHideTask = nil
+                }
+            }
         }
 
         guard let domain = defaults.string(forKey: "warning.domain") else { return }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Doomscroll Pet \u2014 Safari",
-  "version": "0.3.0",
+  "version": "0.4.1",
   "description": "A desktop cat visits near your chosen time limit on selected websites.",
   "icons": {
     "48": "images/icon-48.png",
