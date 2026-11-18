@@ -108,7 +108,8 @@ private struct FloatingPetView: View {
                     .interpolation(.none)
                     .scaledToFit()
                     .scaleEffect(x: model.facingLeft ? -1 : 1, y: 1)
-                    .accessibilityLabel("Doomscroll Pet, a pixel cat")
+                    .scaleEffect(model.selectedSprite == "dog" ? 0.8 : 1)
+                    .accessibilityLabel(model.selectedSprite == "dog" ? "Doomscroll Pet, a pixel dog" : "Doomscroll Pet, a pixel cat")
             } else {
                 Image(systemName: "cat.fill")
                     .resizable()
